@@ -50,8 +50,13 @@ namespace Unity.MMO.Client
         {
             Connect();
         }
-        
-        
+
+        private void OnDestroy()
+        {
+            Disconnect();
+        }
+
+
         public void Connect()
         {
             _client = new NetcodeIO.NET.Client();
