@@ -24,6 +24,18 @@ public class PlayerController : MonoBehaviour
 	{
 		_connectionManager = ConnectionManager.GetComponent<ConnectionManager>();
 	}
+
+	private Vector3 oldVal;
+	bool CheckForUpdate(Vector3 newVal)
+	{
+		if (oldVal != newVal)
+		{
+			oldVal = newVal;
+			return true;
+		}
+
+		return false;
+	}
 	
 	void Update()
 	{
@@ -32,10 +44,16 @@ public class PlayerController : MonoBehaviour
 
 		transform.Rotate(0, x, 0);
 		transform.Translate(0, 0, z);
-
-		var position = new Position {X = transform.position.x, Y = transform.position.y, Z = transform.position.z};
-		var payload = StructTools.RawSerialize(position);
-		_connectionManager.Send(payload, payload.Length);
 		
+		Debug.Log($"X:{transform.position.x} Y:{transform.position.y} Z:{transform.position.y}");
+		
+		if (CheckForUpdate(transform.position))
+		{
+			var position = new Position {X = transform.position.x, Y = transform.position.y, Z = transform.position.z};
+			Debug.Log($"X:{transform.position.x} Y:{transform.position.y} Z:{transform.position.y}");
+			var payload = StructTools.RawSerialize(position);
+			_connectionManager.Send(payload, payload.Length);
+		}
+
 	}
 }

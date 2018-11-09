@@ -2,6 +2,8 @@
 // ReSharper disable InconsistentNaming
 using System.Collections.Generic;
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 using NetcodeIO.NET;
 using ReliableNetcode;
 using UnityEngine;
@@ -19,6 +21,9 @@ namespace Unity.MMO.Client
             0x43, 0x71, 0xd6, 0x2c, 0xd1, 0x99, 0x27, 0x26,
             0x6b, 0x3c, 0x60, 0xf4, 0xb7, 0x15, 0xab, 0xa1,
         };
+        
+        CancellationTokenSource source = new         CancellationTokenSource();
+        CancellationToken token;
         
         private NetcodeIO.NET.Client _client;
         
@@ -64,10 +69,18 @@ namespace Unity.MMO.Client
 
             var connectToken  = generateToken();
             _client.Connect(connectToken);
+            
+            Task t1 = Task.Run(()  =>
+            {
+                _reliableClient.Update();
+                Thread.Sleep(2000);
+            }, token);
+            
         }
 
         public void Disconnect()
         {
+            source?.Cancel();           
             _client.Disconnect();
         }
 
