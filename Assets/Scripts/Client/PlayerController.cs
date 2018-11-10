@@ -1,4 +1,6 @@
-﻿using System.Net.Sockets;
+﻿using System;
+using System.Linq;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using Unity.MMO.Client;
 using Org.BouncyCastle.Asn1.X9;
@@ -51,7 +53,10 @@ public class PlayerController : MonoBehaviour
 		{
 			var position = new Position {X = transform.position.x, Y = transform.position.y, Z = transform.position.z};
 			Debug.Log($"X:{transform.position.x} Y:{transform.position.y} Z:{transform.position.y}");
-			var payload = StructTools.RawSerialize(position);
+			byte[] obj = StructTools.RawSerialize(position);
+			byte[] type = BitConverter.GetBytes((byte)MessageType.Movement);
+			
+			byte[] payload = type.Concat(obj).ToArray();
 			_connectionManager.Send(payload, payload.Length);
 		}
 

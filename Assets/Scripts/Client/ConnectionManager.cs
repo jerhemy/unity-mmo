@@ -1,7 +1,10 @@
 // ReSharper disable SuggestVarOrType_SimpleTypes
 // ReSharper disable InconsistentNaming
+
+using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using NetcodeIO.NET;
@@ -9,7 +12,9 @@ using ReliableNetcode;
 using UnityEngine;
 
 namespace Unity.MMO.Client
-{      
+{
+    public delegate void ReceiveChatMessage(string msg);
+    
     public class ConnectionManager : MonoBehaviour
     {
         private static ConnectionManager instance = null;
@@ -25,9 +30,11 @@ namespace Unity.MMO.Client
         CancellationTokenSource source = new         CancellationTokenSource();
         CancellationToken token;
         
-        private NetcodeIO.NET.Client _client;
-        
+        private NetcodeIO.NET.Client _client;      
         private ReliableEndpoint _reliableClient;
+
+        public static ReceiveChatMessage OnReceiveChatMessage;
+        
         void Awake()
         {
             //Check if instance already exists
@@ -68,8 +75,8 @@ namespace Unity.MMO.Client
             _client.OnMessageReceived += OnClientMessageReceivedHandler;		// void( byte[] payload, int payloadSize )
 
             _reliableClient = new ReliableEndpoint();
-            _reliableClient.ReceiveCallback = OnReliableReceiveCallback;
-            _reliableClient.TransmitCallback = OnReliableTransmitCallback;
+            _reliableClient.ReceiveCallback += OnReliableReceiveCallback;
+            _reliableClient.TransmitCallback += OnReliableTransmitCallback;
             
 
             var connectToken  = generateToken();
@@ -111,7 +118,21 @@ namespace Unity.MMO.Client
             );
             
         }
+        
+        #region Client Callbacks
 
+        private void OnClientStateChanged(ClientState state)
+        {
+            // Check Status of Client
+        }
+
+        private void OnClientMessageReceivedHandler(byte[] payload, int payloadSize)
+        {
+            _reliableClient.ReceivePacket( payload, payloadSize );
+        }
+        
+        #endregion
+        
         public void Send(byte[] payload, int payloadSize)
         {
             _reliableClient.SendMessage(payload, payloadSize, QosType.Unreliable);
@@ -126,25 +147,22 @@ namespace Unity.MMO.Client
         {
             _reliableClient.SendMessage(payload, payloadSize, QosType.UnreliableOrdered);
         }
-        
-        private void OnClientStateChanged(ClientState state)
-        {
-            // Check Status of Client
-        }
 
         private void OnReliableTransmitCallback(byte[] payload, int payloadSize)
         {
             _client.Send( payload, payloadSize );
         }
         
-        private void OnClientMessageReceivedHandler(byte[] payload, int payloadSize)
-        {
-            _reliableClient.ReceivePacket( payload, payloadSize );
-        }
-
         private void OnReliableReceiveCallback(byte[] payload, int payloadSize)
         {
-            // Process Data
+            MessageType type = (MessageType)payload[0];
+            Debug.Log($"Type: {(MessageType) Enum.Parse(typeof(MessageType), type.ToString())}");
+            if (type == MessageType.Chat)
+            {
+                var message = Encoding.ASCII.GetString(payload, payloadSize - 1, 1);
+                Debug.Log($"Message: {message}");
+                OnReceiveChatMessage?.Invoke(message);
+            }
         }
     }
 }
