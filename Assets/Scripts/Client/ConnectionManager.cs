@@ -142,7 +142,6 @@ namespace Unity.MMO.Client
             _reliableClient.ReceivePacket( payload, payloadSize );
         }
 
-        
         private void OnReliableReceiveCallback(byte[] payload, int payloadSize)
         {
             // Process Data
