@@ -52,7 +52,6 @@ public class PlayerController : MonoBehaviour
 		if (CheckForUpdate(transform.position))
 		{
 			var position = new Position {X = transform.position.x, Y = transform.position.y, Z = transform.position.z};
-			Debug.Log($"X:{transform.position.x} Y:{transform.position.y} Z:{transform.position.y}");
 			byte[] obj = StructTools.RawSerialize(position);
 			byte[] type = BitConverter.GetBytes((byte)MessageType.Movement);
 			

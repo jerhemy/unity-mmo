@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace Unity.MMO.Client
 {
-    public delegate void ReceiveChatMessage(string msg);
+    public delegate void ReceiveChatMessage(string message);
     
     public class ConnectionManager : MonoBehaviour
     {
@@ -51,6 +51,9 @@ namespace Unity.MMO.Client
             
             //Sets this to not be destroyed when reloading scene
             DontDestroyOnLoad(gameObject);
+
+             UnityThread.initUnityThread();
+
         }
 
         void Start()
@@ -159,9 +162,22 @@ namespace Unity.MMO.Client
             Debug.Log($"Type: {(MessageType) Enum.Parse(typeof(MessageType), type.ToString())}");
             if (type == MessageType.Chat)
             {
-                var message = Encoding.ASCII.GetString(payload, payloadSize - 1, 1);
+                var message = Encoding.ASCII.GetString(payload, 1, payloadSize - 1);
                 Debug.Log($"Message: {message}");
-                OnReceiveChatMessage?.Invoke(message);
+                
+                UnityThread.executeInUpdate(() =>
+                {
+                    OnReceiveChatMessage?.Invoke(message );
+                });     
+            }
+
+            if (type == MessageType.Movement)
+            {
+                Console.WriteLine($"Type: {(MessageType) Enum.Parse(typeof(MessageType), type.ToString())}");
+
+                var pos = StructTools.RawDeserialize<PlayerController.Position>(payload, 1); // 0 is offset in byte[]
+                //Console.WriteLine($"messageReceivedHandler: {client} sent {payloadSize} bytes of data.");
+                Debug.Log($"X:{pos.X} Y:{pos.Y} Z:{pos.Z}"); 
             }
         }
     }
