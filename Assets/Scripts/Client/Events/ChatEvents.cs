@@ -13,7 +13,8 @@ public class ChatEvents : MonoBehaviour {
 	
 	public GameObject ChatInput;
 	
-	public ConnectionManager _connectionManager;
+	public UnityConnectionManager _connectionManager;
+	//public ConnectionManager _connectionManager;
 	public TextMeshProUGUI textUI;
 	public Text textBox;
 	
@@ -21,15 +22,14 @@ public class ChatEvents : MonoBehaviour {
 	
 	public void Awake()
 	{
-		ConnectionManager.OnReceiveChatMessage += UpdateChat;	
+		UnityConnectionManager.OnReceiveChatMessage += UpdateChat;	
+		//ConnectionManager.OnReceiveChatMessage += UpdateChat;	
 	}
 
 	public void UpdateChat(string message)
 	{
 		Debug.Log($"Message: {message}");
-		var text = textUI.text += message + "\n";
-		textUI.SetText(text);
-		textBox.text = message;
+		textUI.text += message + "\n";
 	}
 	
 	public void OnChatEnter()
@@ -38,7 +38,7 @@ public class ChatEvents : MonoBehaviour {
 		ChatInput.GetComponent<TMP_InputField>().text = "";
 
 		byte[] data = Encoding.ASCII.GetBytes(text);
-		byte[] type = BitConverter.GetBytes((byte)MessageType.Chat);
+		byte[] type = BitConverter.GetBytes((short)MessageType.Chat);
 		byte[] payload = type.Concat(data).ToArray();
 		
 		_connectionManager.Send(payload, payload.Length);	

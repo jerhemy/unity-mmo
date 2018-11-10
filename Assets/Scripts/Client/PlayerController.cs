@@ -20,11 +20,11 @@ public class PlayerController : MonoBehaviour
 	}
 	
 	public GameObject ConnectionManager;
-	private ConnectionManager _connectionManager;
+	private UnityConnectionManager _connectionManager;
 	
 	void Awake()
 	{
-		_connectionManager = ConnectionManager.GetComponent<ConnectionManager>();
+		_connectionManager = ConnectionManager.GetComponent<UnityConnectionManager>();
 	}
 
 	private Vector3 oldVal;
@@ -47,13 +47,12 @@ public class PlayerController : MonoBehaviour
 		transform.Rotate(0, x, 0);
 		transform.Translate(0, 0, z);
 		
-		Debug.Log($"X:{transform.position.x} Y:{transform.position.y} Z:{transform.position.y}");
-		
 		if (CheckForUpdate(transform.position))
 		{
+			Debug.Log($"X:{transform.position.x} Y:{transform.position.y} Z:{transform.position.y}");
 			var position = new Position {X = transform.position.x, Y = transform.position.y, Z = transform.position.z};
 			byte[] obj = StructTools.RawSerialize(position);
-			byte[] type = BitConverter.GetBytes((byte)MessageType.Movement);
+			byte[] type = BitConverter.GetBytes((short)MessageType.Movement);
 			
 			byte[] payload = type.Concat(obj).ToArray();
 			_connectionManager.Send(payload, payload.Length);

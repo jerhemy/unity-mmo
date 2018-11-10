@@ -52,7 +52,7 @@ namespace Unity.MMO.Client
             //Sets this to not be destroyed when reloading scene
             DontDestroyOnLoad(gameObject);
 
-             UnityThread.initUnityThread();
+            UnityThread.initUnityThread();
 
         }
 
