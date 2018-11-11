@@ -5,13 +5,21 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using NetcodeIO.NET;
+using Org.BouncyCastle.Security;
 using ReliableNetcode;
 using Unity.MMO.Client;
 using UnityEngine;
 using UnityNetcodeIO;
 
 public class UnityConnectionManager : MonoBehaviour {
+	
+	public delegate void ChatMessage(string msg);
 
+	public delegate void SocialMessage(byte[] payload, int payloadSize);
+
+	public delegate void CombatMessage(byte[] payload, int payloadSize);
+
+	public delegate void ConnectionStatus(NetcodeClientStatus status);
 	
 	private static UnityConnectionManager instance = null;
 
@@ -26,8 +34,11 @@ public class UnityConnectionManager : MonoBehaviour {
 		0x6b, 0x3c, 0x60, 0xf4, 0xb7, 0x15, 0xab, 0xa1,
 	};
 	
-	public delegate void ReceiveChatMessage(string msg);
-	public static ReceiveChatMessage OnReceiveChatMessage;
+	
+	public static ChatMessage OnReceiveChatMessage;
+	public static SocialMessage OnReceiveSocialMessage;
+	public static CombatMessage OnReceiveCombatMessage;
+	public static ConnectionStatus OnConnectionStatus;
 	
 	void Awake()
 	{
@@ -49,45 +60,61 @@ public class UnityConnectionManager : MonoBehaviour {
 	
 	// Use this for initialization
 	void Start () {
-		
-		// check for Netcode.IO extension
-		// Will provide NetcodeIOSupportStatus enum, either:
-		// Available, if Netcode.IO is available and the standalone helper is installed (or if in standalone),
-		// Unavailable, if Netcode.IO is unsupported (direct user to install extension)
-		// HelperNotInstalled, if Netcode.IO is available but the standalone helper is not installed (direct user to install the standalone helper)
-		UnityNetcode.QuerySupport( (supportStatus) =>
+		UnityNetcode.QuerySupport( supportStatus =>
 		{
-			if (supportStatus != NetcodeIOSupportStatus.Available) return;
-			
-			UnityNetcode.CreateClient( NetcodeIOClientProtocol.IPv4, (client) =>
+			switch (supportStatus)
 			{
-				var connectToken = generateToken();
-				client.Connect( connectToken, () =>
-				{
-					Debug.Log("Connected");
-					//StartListening();
-					_client = client;
-					_reliableClient = new ReliableEndpoint();
-					_reliableClient.ReceiveCallback += OnReliableReceiveCallback;
-					_reliableClient.TransmitCallback += OnReliableTransmitCallback;
-					
-					_client.AddPayloadListener(OnMessageReceive);
-					
-				}, ( err ) =>
-				{
-					Debug.Log("Cound not connect to server");
-				} );
-				
-			} );
-//			_reliableClient = new ReliableEndpoint();
-//			_reliableClient.ReceiveCallback += OnReliableReceiveCallback;
-//			_reliableClient.TransmitCallback += OnReliableTransmitCallback;
-			//Connect();
+				case NetcodeIOSupportStatus.HelperNotInstalled:
+				case NetcodeIOSupportStatus.Unavailable:
+					return;
+				case NetcodeIOSupportStatus.Available:
+					Connect(NetcodeIOClientProtocol.IPv4);
+					break;
+				case NetcodeIOSupportStatus.Unknown:
+					break;
+				default:
+					Connect(NetcodeIOClientProtocol.IPv4);
+					break;
+			}
 		} );
 		
 
 	}
+
+	#region Connection Setup
+
+	private void Connect(NetcodeIOClientProtocol protocol)
+	{
+		UnityNetcode.CreateClient( protocol, client =>
+		{
+			_client = client;
+			var connectToken = generateToken();
+			client.Connect( connectToken, OnConnectSuccess, OnConnectFailure);			
+		});		
+	}
+
+	private static void OnStatusChange(NetcodeClientStatus status)
+	{
+		OnConnectionStatus?.Invoke(status);
+	}
 	
+	private void OnConnectSuccess()
+	{		
+		_client.QueryStatus(OnStatusChange);
+		
+		_reliableClient = new ReliableEndpoint();
+		_reliableClient.ReceiveCallback += OnReliableReceiveCallback;
+		_reliableClient.TransmitCallback += OnReliableTransmitCallback;
+		_client.AddPayloadListener(OnMessageReceive);
+	}
+
+	private void OnConnectFailure(string error)
+	{
+		Debug.Log("Cound not connect to server");
+	}	
+
+	#endregion
+
 	void OnMessageReceive(NetcodeClient client, NetcodePacket packet)
 	{
 		var payload = packet.PacketBuffer.InternalBuffer;
@@ -97,8 +124,7 @@ public class UnityConnectionManager : MonoBehaviour {
 	public void Send(byte[] payload, int payloadSize)
 	{
 		Debug.Log($"Sending Payload of {payloadSize} bytes.");
-		_reliableClient.SendMessage(payload, payloadSize, QosType.Unreliable);
-		
+		_reliableClient.SendMessage(payload, payloadSize, QosType.Unreliable);	
 	}
 	
 	private byte[] generateToken()
@@ -109,19 +135,18 @@ public class UnityConnectionManager : MonoBehaviour {
 		var serverAddress = addressList.ToArray();
             
 		TokenFactory tokenFactory = new TokenFactory(
-			1,		// must be the same protocol ID as passed to both client and server constructors
-			_privateKey		// byte[32], must be the same as the private key passed to the Server constructor
+			1,			  // must be the same protocol ID as passed to both client and server constructors
+			_privateKey	  // byte[32], must be the same as the private key passed to the Server constructor
 		);
             
 		return tokenFactory.GenerateConnectToken(
-			serverAddress,		// IPEndPoint[] list of addresses the client can connect to. Must have at least one and no more than 32.
-			60,		// in how many seconds will the token expire
-			60,		// how long it takes until a connection attempt times out and the client tries the next server.
-			1UL,		// ulong token sequence number used to uniquely identify a connect token.
-			1UL,		// ulong ID used to uniquely identify this client
-			new byte[256]		// byte[], up to 256 bytes of arbitrary user data (available to the server as RemoteClient.UserData)
-		);
-            
+			serverAddress,	// IPEndPoint[] list of addresses the client can connect to. Must have at least one and no more than 32.
+			2 * 60,			// in how many seconds will the token expire
+			30,				// how long it takes until a connection attempt times out and the client tries the next server.
+			1UL,			// ulong token sequence number used to uniquely identify a connect token.
+			1UL,			// ulong ID used to uniquely identify this client
+			new byte[256]	// byte[], up to 256 bytes of arbitrary user data (available to the server as RemoteClient.UserData)
+		);          
 	}
 	
 	private void OnReliableTransmitCallback(byte[] payload, int payloadSize)
@@ -130,18 +155,20 @@ public class UnityConnectionManager : MonoBehaviour {
 		{
 			_client.Send(payload, payloadSize);
 		}
-}
+	}
         
 	private void OnReliableReceiveCallback(byte[] payload, int payloadSize)
 	{
-		Debug.Log($"Received Payload of {payloadSize} bytes.");
+		//Extract Header Type
 		MessageType type = (MessageType)BitConverter.ToInt16(payload, 0);
-		Debug.Log($"Type: {(MessageType) Enum.Parse(typeof(MessageType), type.ToString())}");
 		if (type == MessageType.Chat)
 		{
-			
 			var message = Encoding.ASCII.GetString(payload, 2, payloadSize - 2);
-			Debug.Log($"Message Received: {message}");
+			
+			#if DEBUG
+			Debug.Log($"Type: {EnumUtils.ToString(type)} Text: {message}");
+			#endif
+			
 			OnReceiveChatMessage?.Invoke(message);
 		}
 	}

@@ -340,7 +340,7 @@ namespace UnityNetcodeIO
 			internalClient.OnStateChanged += (state) =>
 			{
 				Debug.Log("State changed to: " + (int)state);
-
+				
 				if (state == ClientState.Connected)
 					pushCallback(clientConnected);
 				else if ((int)state < 0)

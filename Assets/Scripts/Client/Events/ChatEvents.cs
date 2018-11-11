@@ -9,8 +9,10 @@ using Unity.MMO.Client;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ChatEvents : MonoBehaviour {
-	
+public class ChatEvents : MonoBehaviour
+{
+
+	public static bool isChatFocused = false; 
 	public GameObject ChatInput;
 	
 	public UnityConnectionManager _connectionManager;
@@ -26,9 +28,13 @@ public class ChatEvents : MonoBehaviour {
 		//ConnectionManager.OnReceiveChatMessage += UpdateChat;	
 	}
 
+	public void OnFocus()
+	{
+			
+	}
+	
 	public void UpdateChat(string message)
 	{
-		Debug.Log($"Message: {message}");
 		textUI.text += message + "\n";
 	}
 	
@@ -41,7 +47,10 @@ public class ChatEvents : MonoBehaviour {
 		byte[] type = BitConverter.GetBytes((short)MessageType.Chat);
 		byte[] payload = type.Concat(data).ToArray();
 		
+
 		_connectionManager.Send(payload, payload.Length);	
 	}
+
+	
 
 }

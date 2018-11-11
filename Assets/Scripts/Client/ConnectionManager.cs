@@ -177,7 +177,7 @@ namespace Unity.MMO.Client
 
                 var pos = StructTools.RawDeserialize<PlayerController.Position>(payload, 1); // 0 is offset in byte[]
                 //Console.WriteLine($"messageReceivedHandler: {client} sent {payloadSize} bytes of data.");
-                Debug.Log($"X:{pos.X} Y:{pos.Y} Z:{pos.Z}"); 
+                Debug.Log(pos.ToString()); 
             }
         }
     }
