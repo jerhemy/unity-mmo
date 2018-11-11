@@ -1,11 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class SlideShowFader : MonoBehaviour {
 
-	public Sprite backGround;
+	public Sprite backgroundImage;
 	public List<Sprite> spashScreenImages = new List<Sprite>();
 
 	public float Delay;
@@ -29,18 +30,12 @@ public class SlideShowFader : MonoBehaviour {
 			_image.sprite = spashScreenImages[index];
 			index++;
 		}
+		else
+		{
+			CancelInvoke();
+			var loginScene = AssetManager.BaseScenePaths.Find(scene => scene.Contains("Login"));
+			FindObjectOfType<GameSceneManager>().LoadScene(loginScene);
+			//SceneManager.LoadSceneAsync(AssetManager.BaseScenePaths[1], LoadSceneMode.Single);
+		}
 	}
-
-	void Update()
-	{
-//		Color curColor = _image.color;
-//		float alphaDiff = Mathf.Abs(curColor.a - targetAlpha);
-//		if (alphaDiff > 0.0001f)
-//		{
-//			curColor.a = Mathf.Lerp(curColor.a, targetAlpha, FadeRate * Time.deltaTime);
-//			_image.color = curColor;
-//			Debug.Log(_image.color.a);
-//		}
-	}
-
 }

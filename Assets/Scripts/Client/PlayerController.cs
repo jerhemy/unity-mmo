@@ -80,40 +80,35 @@ public class PlayerController : MonoBehaviour
 	
 	void Update()
 	{
-		isRotating = Input.GetMouseButtonDown(1);
-		
 		if (EventSystem.current.currentSelectedGameObject == null)
 		{
-			if (controller.isGrounded) {
-				moveDirection = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
-				moveDirection = transform.TransformDirection(moveDirection);
-				moveDirection *= speed;
-				if (Input.GetButton("Jump"))
-					moveDirection.y = jumpSpeed;
-             
-			}
-			
-			moveDirection.y -= gravity * Time.deltaTime;
-			controller.Move(moveDirection * Time.deltaTime);
+			var h = Input.GetAxis("Horizontal");
+			var v = Input.GetAxis("Vertical");
 
-			if (Input.GetMouseButtonDown(1))
+			if (!Input.GetMouseButton(1)) // NEW
+				transform.Rotate(0, h * 3.0f, 0); // Turn left/right
+
+			// Only allow user control when on ground
+			if (controller.isGrounded)
 			{
-				float mouseInput = Input.GetAxis("Mouse X");
-				Debug.Log(mouseInput.ToString());
-				Vector3 lookhere = new Vector3(0, mouseInput, 0);
-				transform.Rotate(lookhere);
+				if (Input.GetMouseButton(1)) // NEW
+					moveDirection = new Vector3(h, 0, v); // Strafe
+				else
+					moveDirection = Vector3.forward * v; // Move forward/backward
+
+				moveDirection = transform.TransformDirection(moveDirection);
+				moveDirection *= 6.0f;
+				if (Input.GetButton("Jump"))
+					moveDirection.y = 8.0f;
 			}
 
-//			var x = Input.GetAxis("Horizontal") * Time.deltaTime * 150.0f;
-//			var z = Input.GetAxis("Vertical") * Time.deltaTime * 3.0f;
-//
-//			transform.Rotate(0, x, 0);
-//			transform.Translate(0, 0, z);
-
+			moveDirection.y -= 20.0f * Time.deltaTime; // Apply gravity
+			controller.Move(moveDirection * Time.deltaTime);
+			
 			if (CheckForUpdate(transform.position))
 			{
 				Debug.Log($"X:{transform.position.x} Y:{transform.position.y} Z:{transform.position.z}");
-				
+			
 				var position = new Position(controller.transform.position);
 				byte[] obj = StructTools.RawSerialize(position);
 				byte[] type = BitConverter.GetBytes((short) MessageType.Movement);
@@ -122,5 +117,6 @@ public class PlayerController : MonoBehaviour
 				_connectionManager.Send(payload, payload.Length);
 			}
 		}
+	
 	}
 }
