@@ -32,3 +32,4 @@ public static class StructTools
 		return rawDatas;
 	}
 }
+

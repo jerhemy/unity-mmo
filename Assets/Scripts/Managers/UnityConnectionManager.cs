@@ -20,6 +20,8 @@ public class UnityConnectionManager : MonoBehaviour {
 	public delegate void CombatMessage(byte[] payload, int payloadSize);
 
 	public delegate void ConnectionStatus(NetcodeClientStatus status);
+
+	public delegate void EntityReceived(Entity entity);
 	
 	private static UnityConnectionManager instance = null;
 
@@ -39,6 +41,7 @@ public class UnityConnectionManager : MonoBehaviour {
 	public static SocialMessage OnReceiveSocialMessage;
 	public static CombatMessage OnReceiveCombatMessage;
 	public static ConnectionStatus OnConnectionStatus;
+	public static EntityReceived OnEntityReceived;
 	
 	void Awake()
 	{
@@ -56,6 +59,18 @@ public class UnityConnectionManager : MonoBehaviour {
             
 		//Sets this to not be destroyed when reloading scene
 		DontDestroyOnLoad(gameObject);
+	}
+
+	void FixedUpdate()
+	{
+		try
+		{
+			_reliableClient.Update();
+		}
+		catch (Exception e)
+		{
+			
+		}
 	}
 	
 	// Use this for initialization
@@ -79,6 +94,11 @@ public class UnityConnectionManager : MonoBehaviour {
 		} );
 		
 
+	}
+
+	public static ulong getClientId()
+	{
+		return 1UL;
 	}
 
 	#region Connection Setup
@@ -123,7 +143,7 @@ public class UnityConnectionManager : MonoBehaviour {
 	
 	public void Send(byte[] payload, int payloadSize)
 	{
-		Debug.Log($"Sending Payload of {payloadSize} bytes.");
+		//Debug.Log($"Sending Payload of {payloadSize} bytes.");
 		_reliableClient.SendMessage(payload, payloadSize, QosType.Unreliable);	
 	}
 	
@@ -171,10 +191,18 @@ public class UnityConnectionManager : MonoBehaviour {
 			
 			OnReceiveChatMessage?.Invoke(message);
 		}
+
+		if (type == MessageType.Entity)
+		{
+			Debug.Log($"Entity: {payloadSize-2}");
+			var entity = StructTools.RawDeserialize<Entity>(payload, 2);
+			OnEntityReceived?.Invoke(entity);
+		}
 	}
 
 	private void OnDestroy()
 	{
 		UnityNetcode.DestroyClient( _client );
 	}
+	
 }
