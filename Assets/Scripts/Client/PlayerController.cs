@@ -1,54 +1,15 @@
 ﻿using System;
 using System.Linq;
-using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using Unity.MMO.Client;
-using Org.BouncyCastle.Asn1.X9;
-using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityMMO.Manager;
+using UnityMMO.Models;
 
 public class PlayerController : MonoBehaviour
 {
-	[StructLayout(LayoutKind.Explicit, Size = 12, Pack = 1)]
-	public struct Position
-	{
-		[FieldOffset(0)] private float x;
-		[FieldOffset(4)] private float y;
-		[FieldOffset(8)] private float z;
-		
-		[FieldOffset(12)] private float rotX;
-		[FieldOffset(16)] private float rotY;
-		[FieldOffset(20)] private float rotZ;
-		
-		public Position(Vector3 position)
-		{
-			x = position.x;
-			y = position.y;
-			z = position.z;
-			
-			rotX = 0;
-			rotY = 0;
-			rotZ = 0;
-		}
-		
-		public Position(Vector3 position, Quaternion rotation)
-		{
-			x = position.x;
-			y = position.y;
-			z = position.z;
 
-			rotX = rotation.x;
-			rotY = rotation.y;
-			rotZ = rotation.z;
-		}
-
-		public override string ToString()
-		{
-			return $"X:{x} Y:{y} Z:{z}";
-		}
-	}
 	
 	public GameObject ConnectionManager;
 	private UnityConnectionManager _connectionManager;
@@ -83,10 +44,48 @@ public class PlayerController : MonoBehaviour
 	{
 		isRotating = Input.GetMouseButtonDown(1);
 		
+		if( Input.GetMouseButtonDown(0) )
+		{
+			Ray ray = Camera.main.ScreenPointToRay( Input.mousePosition );
+			RaycastHit hit;
+         
+			if( Physics.Raycast( ray, out hit, 100 ) )
+			{
+				Debug.Log( hit.transform.gameObject.name );
+			}
+		}
+		
 		if (EventSystem.current.currentSelectedGameObject == null)
 		{
-			if (controller.isGrounded) {
-				moveDirection = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
+			if (controller.isGrounded)
+			{
+
+				var horizontalMove = 0f;
+				var verticalMove = 0f;
+				
+				if (Input.GetKey(KeyCode.LeftArrow))
+				{
+					horizontalMove = -1f;
+					//transform.position += Vector3.left * speed * Time.deltaTime;
+				}
+				if (Input.GetKey(KeyCode.RightArrow))
+				{
+					horizontalMove = 1f;
+					//transform.position += Vector3.right * speed * Time.deltaTime;
+				}
+				if (Input.GetKey(KeyCode.UpArrow))
+				{
+					verticalMove = 1f;
+					//transform.position += Vector3.up * speed * Time.deltaTime;
+				}
+				if (Input.GetKey(KeyCode.DownArrow))
+				{
+					verticalMove = -1f;
+					//transform.position += Vector3.down * speed * Time.deltaTime;
+				}
+				
+				
+				moveDirection = new Vector3(horizontalMove, 0, verticalMove);
 				moveDirection = transform.TransformDirection(moveDirection);
 				moveDirection *= speed;
 				if (Input.GetButton("Jump"))
@@ -113,13 +112,8 @@ public class PlayerController : MonoBehaviour
 			if (CheckForUpdate(transform.position))
 			{
 				//Debug.Log($"X:{transform.position.x} Y:{transform.position.y} Z:{transform.position.z}");
-				
 				var position = new Position(controller.transform.position);
-				byte[] obj = StructTools.RawSerialize(position);
-				byte[] type = BitConverter.GetBytes((short) MessageType.Movement);
-
-				byte[] payload = type.Concat(obj).ToArray();
-				_connectionManager.Send(payload, payload.Length);
+				_connectionManager.Send(position, MessageType.Movement);
 			}
 		}
 	

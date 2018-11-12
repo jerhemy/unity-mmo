@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using UnityEngine;
 
 namespace UnityMMO.Models
 {
@@ -7,14 +8,18 @@ namespace UnityMMO.Models
 	public struct Entity
 	{
 		public int id;
-			
+        
 		[MarshalAs(UnmanagedType.ByValTStr, SizeConst=16)]
 		public String name;
-			
-		/* Positioning */
-		public double x;
-		public double y;
-		public double z;
+
+		public SimpleVector3 loc;
 		public float  orientation;
+
+		public float vX;
+		public float vY;
+		public float vZ;
+
+		[MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.Struct, SizeConst = 8)]
+		public SimpleVector3[] waypoints;
 	}
 }

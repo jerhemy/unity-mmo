@@ -13,6 +13,7 @@ public class GameSceneManager : MonoBehaviour {
 	private static GameSceneManager instance = null;
 	private static ConcurrentDictionary<ulong, Entity> entities = new ConcurrentDictionary<ulong, Entity>();
 	private GameObject npcContainer;
+	
 	void Awake()
 	{
 		//Check if instance already exists
@@ -49,16 +50,21 @@ public class GameSceneManager : MonoBehaviour {
 			var go = foundObjects.FirstOrDefault(x => x.id == (ulong) e.Value.id)?.gameObject;
 			if (go == null)
 			{
+				//Create Entity
 				go = GameObject.CreatePrimitive(PrimitiveType.Cube);
 				go.AddComponent<EntityName>();
+				go.AddComponent<CharacterController>();
 				var eName = go.GetComponent<EntityName>();
 				eName.id = (ulong) e.Value.id;
 				eName.name = e.Value.name;
 				
 				go.transform.parent = npcContainer.transform;
-			}		
-			
-			go.transform.position = new Vector3((float) e.Value.x, (float) e.Value.y, (float) e.Value.z);
+			}
+
+			var v3 = e.Value.loc.toVector3();
+			go.transform.position = v3;
+			//var CC = go.GetComponent<CharacterController>();
+			//CC.transform.TransformDirection()
 		}
 	}
 

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text;
+using GameServer.Models;
 using NetcodeIO.NET;
 using ReliableNetcode;
 using Unity.MMO.Client;
@@ -13,8 +15,7 @@ namespace UnityMMO.Manager
 {
 	public class UnityConnectionManager : MonoBehaviour
 	{
-
-		public delegate void ChatMessage(string msg);
+		public delegate void ChatMessageEvent(ChatMessage chatMessage);
 
 		public delegate void SocialMessage(byte[] payload, int payloadSize);
 
@@ -29,6 +30,8 @@ namespace UnityMMO.Manager
 		private NetcodeClient _client;
 		private ReliableEndpoint _reliableClient;
 
+		private const int HEADER_OFFSET = 2;
+		
 		static readonly byte[] _privateKey = new byte[]
 		{
 			0x60, 0x6a, 0xbe, 0x6e, 0xc9, 0x19, 0x10, 0xea,
@@ -38,7 +41,7 @@ namespace UnityMMO.Manager
 		};
 
 
-		public static ChatMessage OnReceiveChatMessage;
+		public static ChatMessageEvent OnReceiveChatMessage;
 		public static SocialMessage OnReceiveSocialMessage;
 		public static CombatMessage OnReceiveCombatMessage;
 		public static ConnectionStatus OnConnectionStatus;
@@ -148,6 +151,15 @@ namespace UnityMMO.Manager
 			//Debug.Log($"Sending Payload of {payloadSize} bytes.");
 			_reliableClient.SendMessage(payload, payloadSize, QosType.Unreliable);
 		}
+		
+		public void Send<T>(T data, MessageType type, QosType qosType = QosType.Unreliable)
+		{
+			byte[] objData = StructTools.RawSerialize(data);
+			byte[] objType = BitConverter.GetBytes((short)type);
+			byte[] payload = objType.Concat(objData).ToArray();       
+			_reliableClient.SendMessage(payload, payload.Length, QosType.Unreliable);
+		}
+
 
 		private byte[] generateToken()
 		{
@@ -185,13 +197,8 @@ namespace UnityMMO.Manager
 			MessageType type = (MessageType) BitConverter.ToInt16(payload, 0);
 			if (type == MessageType.Chat)
 			{
-				var message = Encoding.ASCII.GetString(payload, 2, payloadSize - 2);
-
-#if DEBUG
-				Debug.Log($"Type: {EnumUtils.ToString(type)} Text: {message}");
-#endif
-
-				OnReceiveChatMessage?.Invoke(message);
+				var msg = StructTools.RawDeserialize<ChatMessage>(payload, HEADER_OFFSET);			
+				OnReceiveChatMessage?.Invoke(msg);
 			}
 
 			if (type == MessageType.Entity)

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Mime;
-using System.Text;
+﻿using GameServer.Models;
 using TMPro;
 using Unity.MMO.Client;
 using UnityEngine;
@@ -34,22 +29,18 @@ public class ChatEvents : MonoBehaviour
 			
 	}
 	
-	public void UpdateChat(string message)
+	public void UpdateChat(ChatMessage chatMessage)
 	{
-		textUI.text += message + "\n";
+		textUI.text +=  $"{chatMessage.@from}:{chatMessage.message}\n";
 	}
 	
 	public void OnChatEnter()
 	{
 		var text = ChatInput.GetComponent<TMP_InputField>().text;
 		ChatInput.GetComponent<TMP_InputField>().text = "";
-
-		byte[] data = Encoding.ASCII.GetBytes(text);
-		byte[] type = BitConverter.GetBytes((short)MessageType.Chat);
-		byte[] payload = type.Concat(data).ToArray();
+		var msg = new ChatMessage {@from = "Me", message = text};
 		
-
-		_connectionManager.Send(payload, payload.Length);	
+		_connectionManager.Send(msg, MessageType.Chat);	
 	}
 
 	
