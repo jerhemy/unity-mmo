@@ -3,10 +3,10 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
-using Unity.MMO.Client;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityMMO.Manager;
+using UnityMMO.Models;
 
 public class GameSceneManager : MonoBehaviour {
 	
@@ -34,20 +34,8 @@ public class GameSceneManager : MonoBehaviour {
 	// Use this for initialization
 	void Start ()
 	{
-		 npcContainer = new GameObject("NPCs");
+		npcContainer = new GameObject("NPCs");
 		UnityConnectionManager.OnEntityReceived += EntityReceived;
-		
-		var e = new Entity();
-		e.name = "Test";
-
-		var data = StructTools.RawSerialize(e);
-		var type = BitConverter.GetBytes((short) MessageType.Entity);
-		
-		var payload = type.Concat(data).ToArray();
-		
-		var x = StructTools.RawDeserialize<Entity>(payload, 2);
-		
-		//Debug.Log(x.name);
 	}
 	
 	// Update is called once per frame
@@ -63,10 +51,13 @@ public class GameSceneManager : MonoBehaviour {
 			{
 				go = GameObject.CreatePrimitive(PrimitiveType.Cube);
 				go.AddComponent<EntityName>();
-				go.GetComponent<EntityName>().id = (ulong) e.Value.id;
-				go.GetComponent<EntityName>().name = e.Value.name;			
+				var eName = go.GetComponent<EntityName>();
+				eName.id = (ulong) e.Value.id;
+				eName.name = e.Value.name;
+				
 				go.transform.parent = npcContainer.transform;
 			}		
+			
 			go.transform.position = new Vector3((float) e.Value.x, (float) e.Value.y, (float) e.Value.z);
 		}
 	}

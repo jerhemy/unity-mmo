@@ -8,6 +8,7 @@ using TMPro;
 using Unity.MMO.Client;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityMMO.Manager;
 
 public class ChatEvents : MonoBehaviour
 {
