@@ -10,16 +10,33 @@ namespace UnityMMO.Models
 		public int id;
         
 		[MarshalAs(UnmanagedType.ByValTStr, SizeConst=16)]
-		public String name;
+		public string name;
 
 		public SimpleVector3 loc;
 		public float  orientation;
 
-		public float vX;
-		public float vY;
-		public float vZ;
+		private int currentWayPointIndex;
 
-		[MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.Struct, SizeConst = 8)]
+        
+		[MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.Struct, SizeConst = 4)]
 		public SimpleVector3[] waypoints;
+
+
+		public SimpleVector3 getWaypoint(bool getNext) 
+		{
+			if (getNext)
+			{
+				if (currentWayPointIndex == waypoints.Length - 1)
+				{
+					currentWayPointIndex++;
+				}
+				else
+				{
+					currentWayPointIndex = 0;
+				}
+			}
+
+			return waypoints[currentWayPointIndex];
+		}
 	}
 }

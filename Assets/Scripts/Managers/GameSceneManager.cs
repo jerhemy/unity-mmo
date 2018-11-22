@@ -61,7 +61,8 @@ public class GameSceneManager : MonoBehaviour {
 				go.transform.parent = npcContainer.transform;
 			}
 
-			var v3 = e.Value.loc.toVector3();
+			var v3 = e.Value.loc.ToVector3();
+			v3.y += 1;
 			go.transform.position = v3;
 			//var CC = go.GetComponent<CharacterController>();
 			//CC.transform.TransformDirection()

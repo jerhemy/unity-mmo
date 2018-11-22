@@ -11,6 +11,13 @@ public class CreateAssetBundles
 		{
 			Directory.CreateDirectory(assetBundleDirectory);
 		}
+		
+		#if UNITY_STANDALONE_WIN
 		BuildPipeline.BuildAssetBundles(assetBundleDirectory, BuildAssetBundleOptions.None, BuildTarget.StandaloneWindows);
+		#endif
+		
+		#if UNITY_STANDALONE_OSX
+		BuildPipeline.BuildAssetBundles(assetBundleDirectory, BuildAssetBundleOptions.None, BuildTarget.StandaloneOSX);
+		#endif
 	}
 }
