@@ -5,6 +5,13 @@
 [Bb]uilds/
 Assets/AssetStoreTools*
 Assets/AssetBundles
+Assets/*
+!/Assets/_Materials
+!/Assets/_Prefabs
+!/Assets/_Scenes
+!/Assets/_Scripts
+!/Assets/_Sounds
+!/Assets/_Textures
 
 # Visual Studio cache directory
 .vs/
