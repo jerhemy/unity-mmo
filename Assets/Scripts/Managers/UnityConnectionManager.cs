@@ -16,13 +16,19 @@ namespace UnityMMO.Manager
 	public class UnityConnectionManager : MonoBehaviour
 	{
 		public delegate void ChatMessageEvent(ChatMessage chatMessage);
+
+		public delegate void SocialMessage(byte[] payload, int payloadSize);
+
+		public delegate void CombatMessage(byte[] payload, int payloadSize);
+
 		public delegate void ConnectionStatus(NetcodeClientStatus status);
+
 		public delegate void EntityReceived(Entity entity);
 
-		private static UnityConnectionManager _instance = null;
+		private static UnityConnectionManager instance = null;
 
-		private NetcodeClient 		_client;
-		private ReliableEndpoint 	_reliableClient;
+		private NetcodeClient _client;
+		private ReliableEndpoint _reliableClient;
 
 		private const int HEADER_OFFSET = 2;
 		
@@ -34,20 +40,23 @@ namespace UnityMMO.Manager
 			0x6b, 0x3c, 0x60, 0xf4, 0xb7, 0x15, 0xab, 0xa1,
 		};
 
+
 		public static ChatMessageEvent OnReceiveChatMessage;
+		public static SocialMessage OnReceiveSocialMessage;
+		public static CombatMessage OnReceiveCombatMessage;
 		public static ConnectionStatus OnConnectionStatus;
 		public static EntityReceived OnEntityReceived;
 
 		void Awake()
 		{
 			//Check if instance already exists
-			if (_instance == null)
+			if (instance == null)
 
 				//if not, set instance to this
-				_instance = this;
+				instance = this;
 
 			//If instance already exists and it's not this:
-			else if (_instance != this)
+			else if (instance != this)
 
 				//Then destroy this. This enforces our singleton pattern, meaning there can only ever be one instance of a GameManager.
 				Destroy(gameObject);
@@ -58,19 +67,21 @@ namespace UnityMMO.Manager
 
 		void FixedUpdate()
 		{
-			if (_client.Status == NetcodeClientStatus.Connected)
+			try
 			{
-				_reliableClient?.Update();
+				_reliableClient.Update();
+			}
+			catch (Exception e)
+			{
+
 			}
 		}
 
 		// Use this for initialization
 		void Start()
 		{
-			Debug.Log("Starting Connection...");
 			UnityNetcode.QuerySupport(supportStatus =>
 			{
-				Debug.Log("Network Support:" + supportStatus);
 				switch (supportStatus)
 				{
 					case NetcodeIOSupportStatus.HelperNotInstalled:
@@ -86,6 +97,13 @@ namespace UnityMMO.Manager
 						break;
 				}
 			});
+
+
+		}
+
+		public static ulong getClientId()
+		{
+			return 1UL;
 		}
 
 		#region Connection Setup
@@ -100,16 +118,9 @@ namespace UnityMMO.Manager
 			});
 		}
 
-		private void OnStatusChange(NetcodeClientStatus status)
+		private static void OnStatusChange(NetcodeClientStatus status)
 		{
-			if (_client.Status == NetcodeClientStatus.Disconnected)
-			{
-				Application.Quit();
-			}
-			else
-			{
-				OnConnectionStatus?.Invoke(status);
-			}
+			OnConnectionStatus?.Invoke(status);
 		}
 
 		private void OnConnectSuccess()
@@ -124,7 +135,7 @@ namespace UnityMMO.Manager
 
 		private void OnConnectFailure(string error)
 		{
-			Debug.Log("Could not connect to server: " + error);
+			Debug.Log("Cound not connect to server");
 		}
 
 		#endregion
@@ -143,14 +154,12 @@ namespace UnityMMO.Manager
 		
 		public void Send<T>(T data, MessageType type, QosType qosType = QosType.Unreliable)
 		{
-			if (_client.Status == NetcodeClientStatus.Connected)
-			{
-				byte[] objData = StructTools.RawSerialize(data);
-				byte[] objType = BitConverter.GetBytes((short) type);
-				byte[] payload = objType.Concat(objData).ToArray();
-				_reliableClient.SendMessage(payload, payload.Length, QosType.Unreliable);
-			}
+			byte[] objData = StructTools.RawSerialize(data);
+			byte[] objType = BitConverter.GetBytes((short)type);
+			byte[] payload = objType.Concat(objData).ToArray();       
+			_reliableClient.SendMessage(payload, payload.Length, QosType.Unreliable);
 		}
+
 
 		private byte[] generateToken()
 		{
@@ -160,14 +169,14 @@ namespace UnityMMO.Manager
 			var serverAddress = addressList.ToArray();
 
 			TokenFactory tokenFactory = new TokenFactory(
-				1UL, // must be the same protocol ID as passed to both client and server constructors
+				1, // must be the same protocol ID as passed to both client and server constructors
 				_privateKey // byte[32], must be the same as the private key passed to the Server constructor
 			);
 
 			return tokenFactory.GenerateConnectToken(
 				serverAddress, // IPEndPoint[] list of addresses the client can connect to. Must have at least one and no more than 32.
-				60, // in how many seconds will the token expire
-				60, // how long it takes until a connection attempt times out and the client tries the next server.
+				2 * 60, // in how many seconds will the token expire
+				30, // how long it takes until a connection attempt times out and the client tries the next server.
 				1UL, // ulong token sequence number used to uniquely identify a connect token.
 				1UL, // ulong ID used to uniquely identify this client
 				new byte[256] // byte[], up to 256 bytes of arbitrary user data (available to the server as RemoteClient.UserData)
