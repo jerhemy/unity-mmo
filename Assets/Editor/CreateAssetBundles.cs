@@ -3,7 +3,7 @@ using System.IO;
 
 public class CreateAssetBundles
 {
-	[MenuItem("Assets/Build AssetBundles")]
+	[MenuItem("Unity MMO/Build AssetBundles")]
 	static void BuildAllAssetBundles()
 	{
 		string assetBundleDirectory = "Assets/AssetBundles";
